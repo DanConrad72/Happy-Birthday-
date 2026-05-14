@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birthday Cake Surprise</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@400;600&family=Dancing+Script:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --cake-scale: 1;                          /* set by JS */
+            --env-w: min(300px, 90vw);
+            --env-h: calc(var(--env-w) * 0.6875);
+            --moon-sz: clamp(50px, 11vmin, 90px);
+            --garden-h: clamp(120px, 38vh, 280px);    /* floor so garden never disappears */
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            min-height: 100dvh;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            font-family: 'Quicksand', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ── Stars ── */
+        #stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--d, 2s) ease-in-out infinite alternate;
+            animation-delay: var(--delay, 0s);
+        }
+        @keyframes twinkle {
+            from { opacity: 0.1; transform: scale(0.7); }
+            to   { opacity: 0.9; transform: scale(1.3); }
+        }
+
+        /* ── Stage ── */
+        #stage { text-align: center; position: relative; z-index: 10; }
+
+        #hint {
+            font-family: 'Pacifico', cursive;
+            color: #ffeaa7;
+            font-size: clamp(0.9rem, 4vw, 1.35rem);
+            margin-bottom: clamp(12px, 3vw, 24px);
+            text-shadow: 0 0 20px rgba(255,234,167,0.6);
+            animation: floatHint 3s ease-in-out infinite;
+        }
+        @keyframes floatHint {
+            0%,100% { transform: translateY(0); }
+            50%      { transform: translateY(-7px); }
+        }
+
+        /* ── Cake Container ── */
+        .cake-box {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 0 auto;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            filter: drop-shadow(0 20px 40px rgba(253,121,168,0.35));
+            transition: filter 0.2s;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .cake-box:hover { filter: drop-shadow(0 20px 55px rgba(253,121,168,0.55)); }
+
+        /* ── Layers ── */
+        .layer {
+            position: relative;
+            border-radius: 10px 10px 3px 3px;
+            transition: opacity 0.35s ease;
+            overflow: visible;
+        }
+
+        /* Top */
+        .l3 {
+            width: 118px; height: 52px; z-index: 3;
+            background: linear-gradient(175deg, #ff9ff3 0%, #f368e0 55%, #c0392b 100%);
+            border-top: 11px solid #ffeaa7;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.25);
+        }
+        /* Middle */
+        .l2 {
+            width: 178px; height: 62px; z-index: 2;
+            margin-top: -6px;
+            background: linear-gradient(175deg, #ffd32a 0%, #f0932b 55%, #d35400 100%);
+            border-top: 13px solid #ff9ff3;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.2);
+        }
+        /* Bottom */
+        .l1 {
+            width: 238px; height: 72px; z-index: 1;
+            margin-top: -6px;
+            background: linear-gradient(175deg, #c0392b 0%, #7b241c 55%, #5b1717 100%);
+            border-top: 15px solid #f0932b;
+            box-shadow: 0 8px 22px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.1);
+        }
+
+        /* Frosting drip lumps via ::before */
+        .l3::before {
+            content: '';
+            position: absolute;
+            top: -22px; left: 4px; right: 4px; height: 18px;
+            background: #ffeaa7;
+            clip-path: ellipse(52% 60% at 50% 40%);
+            border-radius: 50% 50% 0 0;
+        }
+        .l2::before {
+            content: '';
+            position: absolute;
+            top: -24px; left: 6px; right: 6px; height: 20px;
+            background: #ff9ff3;
+            clip-path: polygon(
+                0% 100%, 6% 0%, 13% 90%, 20% 10%,
+                27% 85%, 34% 5%, 41% 90%, 48% 10%,
+                55% 85%, 62% 5%, 69% 90%, 76% 10%,
+                83% 85%, 90% 5%, 97% 90%, 100% 100%
+            );
+        }
+        .l1::before {
+            content: '';
+            position: absolute;
+            top: -26px; left: 6px; right: 6px; height: 22px;
+            background: #f0932b;
+            clip-path: polygon(
+                0% 100%, 5% 0%, 11% 90%, 17% 10%,
+                23% 85%, 29% 5%, 35% 88%, 41% 8%,
+                47% 85%, 53% 5%, 59% 88%, 65% 8%,
+                71% 85%, 77% 5%, 83% 88%, 89% 8%,
+                95% 85%, 100% 0%, 100% 100%
+            );
+        }
+
+        /* Sprinkles */
+        .sprinkle {
+            position: absolute;
+            width: 7px; height: 3px;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ── Candle ── */
+        .candle-wrap {
+            position: absolute;
+            top: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .glow-halo {
+            position: absolute;
+            top: -18px; left: 50%;
+            transform: translateX(-50%);
+            width: 70px; height: 70px;
+            background: radial-gradient(circle, rgba(255,210,50,0.45) 0%, transparent 70%);
+            pointer-events: none;
+            animation: haloPulse 1.1s ease-in-out infinite alternate;
+        }
+        @keyframes haloPulse {
+            from { opacity: 0.5; transform: translateX(-50%) scale(0.9); }
+            to   { opacity: 1;   transform: translateX(-50%) scale(1.2); }
+        }
+
+        .flame {
+            width: 18px; height: 26px;
+            background: radial-gradient(ellipse at 50% 80%, #fff 0%, #ffd32a 30%, #ff9f43 65%, transparent 100%);
+            border-radius: 50% 50% 30% 30% / 60% 60% 40% 40%;
+            animation: flicker 0.12s ease-in-out infinite alternate;
+            filter: blur(0.4px);
+            position: relative;
+        }
+        .flame::after {
+            content: '';
+            position: absolute;
+            inset: 20% 30%;
+            background: radial-gradient(ellipse, rgba(255,255,255,0.9), transparent);
+            border-radius: 50%;
+        }
+        @keyframes flicker {
+            from { transform: scaleX(1)   scaleY(1)    rotate(-2deg); }
+            to   { transform: scaleX(0.88) scaleY(1.06) rotate(2deg); }
+        }
+
+        .candle-body {
+            width: 13px; height: 40px;
+            background: linear-gradient(180deg, #a29bfe, #6c5ce7, #4a3fc0);
+            border-radius: 3px 3px 1px 1px;
+            position: relative;
+            box-shadow: 0 0 12px rgba(108,92,231,0.6);
+        }
+        .candle-body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 2px; height: 7px;
+            background: #2d3436;
+            border-radius: 1px;
+        }
+        .candle-body::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                160deg, transparent, transparent 6px,
+                rgba(255,255,255,0.12) 6px, rgba(255,255,255,0.12) 8px
+            );
+            border-radius: inherit;
+        }
+
+        /* ── Plate ── */
+        .plate {
+            width: 298px; height: 18px;
+            background: linear-gradient(180deg, #dfe6e9, #b2bec3 60%, #95a5a6);
+            border-radius: 50%;
+            margin-top: -4px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.4), 0 2px 0 rgba(255,255,255,0.15) inset;
+        }
+
+        /* ── Bite FX ── */
+        .bite-chunk {
+            position: fixed;
+            border-radius: 40% 60% 50% 70% / 60% 40% 70% 50%;
+            pointer-events: none;
+            z-index: 1000;
+            animation: chunkFly 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        @keyframes chunkFly {
+            0%   { transform: scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: scale(0.2) rotate(var(--rot)) translate(var(--fx), var(--fy)); opacity: 0; }
+        }
+
+        .crumb {
+            position: fixed;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 999;
+            animation: crumbFall var(--dur, 0.6s) ease-in forwards;
+        }
+        @keyframes crumbFall {
+            0%   { transform: translate(0,0) rotate(0deg); opacity: 1; }
+            100% { transform: translate(var(--cx), var(--cy)) rotate(var(--cr)); opacity: 0; }
+        }
+
+        /* bite ring flash at click point */
+        .bite-ring {
+            position: fixed;
+            border: 3px solid rgba(255,255,255,0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1001;
+            animation: ringExpand 0.4s ease-out forwards;
+        }
+        @keyframes ringExpand {
+            0%   { width: 10px; height: 10px; opacity: 0.9; margin-left: -5px; margin-top: -5px; }
+            100% { width: 80px; height: 80px; opacity: 0; margin-left: -40px; margin-top: -40px; }
+        }
+
+        /* layer crumble-away */
+        @keyframes crumbleFly {
+            0%   { transform: translateY(0)  scale(1)    rotate(0deg); opacity: 1; }
+            25%  { transform: translateY(-12px) scale(1.04) rotate(-2deg); }
+            100% { transform: translateY(80px) scale(0.2)  rotate(18deg); opacity: 0; }
+        }
+        .crumbling {
+            animation: crumbleFly 0.55s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards !important;
+            pointer-events: none;
+        }
+
+        /* shake */
+        @keyframes shake {
+            0%,100% { transform: translateX(0) rotate(0); }
+            18%  { transform: translateX(-9px) rotate(-2deg); }
+            36%  { transform: translateX(9px)  rotate(2deg); }
+            54%  { transform: translateX(-5px) rotate(-1deg); }
+            72%  { transform: translateX(5px)  rotate(1deg); }
+        }
+        .shaking { animation: shake 0.38s ease !important; }
+
+        /* ── Letter scene ── */
+        #letter-container {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding-bottom: 38vh;
+            background: linear-gradient(180deg,
+                #020308 0%, #07091c 18%, #0b0d2e 38%,
+                #090c26 55%, #060e0a 78%, #050c06 100%
+            );
+            overflow: hidden;
+            animation: fadeInScene 1.1s ease forwards;
+        }
+        @keyframes fadeInScene {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        /* Scene background layer */
+        .scene-bg {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        /* Nebula/atmosphere glow */
+        .nebula {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 55% 28% at 22% 22%, rgba(45,28,95,0.14) 0%, transparent 100%),
+                radial-gradient(ellipse 38% 20% at 72% 14%, rgba(75,18,75,0.1) 0%, transparent 100%),
+                radial-gradient(ellipse 42% 22% at 50% 8%,  rgba(25,45,110,0.09) 0%, transparent 100%);
+        }
+
+        /* Moon */
+        .moon {
+            position: absolute;
+            top: 6%; right: 14%;
+            width: var(--moon-sz); height: var(--moon-sz);
+            background: radial-gradient(circle at 36% 36%, #fffde7, #fff8e1 42%, #ffe082 72%, #ffca28 100%);
+            border-radius: 50%;
+            box-shadow:
+                0 0 0 2px rgba(255,220,80,0.14),
+                0 0 32px 14px rgba(255,220,80,0.22),
+                0 0 72px 36px rgba(255,200,50,0.1),
+                0 0 120px 60px rgba(255,180,30,0.05);
+            animation: moonGlow 4s ease-in-out infinite alternate;
+        }
+        .moon::before {
+            content: '';
+            position: absolute;
+            width: 20%; height: 20%;
+            background: rgba(195,160,38,0.18);
+            border-radius: 50%;
+            top: 22%; left: 18%;
+            box-shadow:
+                calc(var(--moon-sz) * 0.24) calc(var(--moon-sz) * 0.11) 0 calc(var(--moon-sz) * 0.09) rgba(195,160,38,0.12),
+                calc(var(--moon-sz) * 0.49) calc(var(--moon-sz) * 0.39) 0 calc(var(--moon-sz) * 0.06) rgba(195,160,38,0.09);
+        }
+        @keyframes moonGlow {
+            from { box-shadow: 0 0 0 2px rgba(255,220,80,0.1), 0 0 28px 12px rgba(255,220,80,0.18), 0 0 65px 32px rgba(255,200,50,0.08); }
+            to   { box-shadow: 0 0 0 2px rgba(255,220,80,0.2), 0 0 46px 22px rgba(255,220,80,0.28), 0 0 95px 48px rgba(255,200,50,0.14); }
+        }
+
+        /* Moonlight cast on garden */
+        .moonlight-beam {
+            position: absolute;
+            top: 10%; right: 10%;
+            width: min(520px, 75vw); height: 88%;
+            background: radial-gradient(ellipse at 50% 0%, rgba(255,240,150,0.052) 0%, transparent 65%);
+            transform: rotate(7deg);
+            transform-origin: top center;
+        }
+
+        /* Scene stars */
+        .scene-stars { position: absolute; inset: 0; }
+        .scene-star {
+            position: absolute;
+            border-radius: 50%;
+            background: white;
+            animation: sceneTwinkle var(--sd, 2s) ease-in-out infinite alternate;
+            animation-delay: var(--sdelay, 0s);
+        }
+        @keyframes sceneTwinkle {
+            from { opacity: 0.08; transform: scale(0.5); }
+            to   { opacity: 0.95; transform: scale(1.45); }
+        }
+
+        /* Garden SVG */
+        .garden-svg {
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%; height: 38vh;
+        }
+
+        /* ── Envelope + Letter ── */
+        .env-scene {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+        }
+        .env-hint {
+            font-family: 'Dancing Script', cursive;
+            color: #ffeaa7;
+            font-size: clamp(0.9rem, 3.5vw, 1.2rem);
+            margin-bottom: 16px;
+            text-shadow: 0 0 16px rgba(255,234,167,0.6);
+            animation: floatHint 3s ease-in-out infinite;
+            transition: opacity 0.5s;
+            min-height: 1.6em;
+        }
+        .env-hint.hidden { opacity: 0; pointer-events: none; }
+
+        /* Outer wrapper — letter slides up out of here */
+        .env-wrap {
+            position: relative;
+            width: var(--env-w);
+            height: var(--env-h);
+            cursor: pointer;
+        }
+
+        /* ── Letter paper ── */
+        .env-letter-paper {
+            position: absolute;
+            bottom: 4.55%;  /* ≈10px at 220px height */
+            left: 4.4%;     /* ≈14px at 320px width */
+            width: 91.25%;  /* ≈292px at 320px width */
+            z-index: 2;
+            transform: translateY(0);
+            transition: transform 1.15s cubic-bezier(0.23, 1, 0.32, 1);
+            box-shadow: 0 3px 14px rgba(0,0,0,0.28);
+        }
+        .env-letter-paper.out {
+            transform: translateY(var(--out-y, -260px));
+            z-index: 10;
+        }
+
+        /* Card-flip hinge for the top fold */
+        .flip-hinge {
+            position: relative;
+            height: clamp(96px, calc(var(--env-w) * 0.4), 128px);
+            transform-style: preserve-3d;
+            transform-origin: bottom center;
+            transform: perspective(900px) rotateX(-180deg);
+            transition: transform 1s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .flip-hinge.open { transform: perspective(900px) rotateX(0deg); }
+        .flip-front, .flip-back {
+            position: absolute; inset: 0;
+            backface-visibility: hidden;
+            overflow: hidden;
+        }
+        .flip-front {
+            background-color: #fdf6e3;
+            background-image: repeating-linear-gradient(
+                transparent 0px, transparent 27px,
+                rgba(160,120,75,0.2) 27px, rgba(160,120,75,0.2) 28.5px
+            );
+            padding: 12px clamp(18px, 10%, 36px) 12px clamp(28px, 16%, 50px);
+        }
+        .flip-front::before {
+            content: '';
+            position: absolute;
+            left: clamp(22px, 13%, 40px); top: 0; bottom: 0;
+            width: 1.5px;
+            background: rgba(205,70,55,0.3);
+        }
+        .flip-back {
+            transform: rotateX(180deg);
+            background: #fdf0d8;
+        }
+
+        /* Visible fold crease between halves */
+        .fold-crease {
+            height: 3px;
+            background: linear-gradient(90deg,
+                transparent 2%,
+                rgba(145,105,45,0.38) 14%,
+                rgba(125,90,38,0.45) 50%,
+                rgba(145,105,45,0.38) 86%,
+                transparent 98%
+            );
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Bottom half — note content */
+        .note-paper {
+            background-color: #fdf6e3;
+            background-image: repeating-linear-gradient(
+                transparent 0px, transparent 27px,
+                rgba(160,120,75,0.2) 27px, rgba(160,120,75,0.2) 28.5px
+            );
+            padding: 14px clamp(18px, 10%, 36px) 38px clamp(28px, 16%, 50px);
+            position: relative;
+        }
+        .note-paper::before {
+            content: '';
+            position: absolute;
+            left: clamp(22px, 13%, 40px); top: 0; bottom: 0;
+            width: 1.5px;
+            background: rgba(205,70,55,0.3);
+        }
+        .note-paper::after {
+            content: '';
+            position: absolute;
+            top: 38%; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 4%, rgba(175,135,75,0.18) 20%, rgba(175,135,75,0.18) 80%, transparent 96%);
+        }
+
+        /* Text styles */
+        .letter-date {
+            text-align: right;
+            font-family: 'Dancing Script', cursive;
+            font-size: clamp(0.72rem, 2.4vw, 0.88rem);
+            color: #9b7240;
+            font-style: italic;
+            margin-bottom: 8px;
+            opacity: 0.85;
+        }
+        .flip-front h2, .note-paper h2 {
+            font-family: 'Dancing Script', cursive;
+            color: #6b3520;
+            font-size: clamp(1.25rem, 5vw, 2.1rem);
+            font-weight: 700;
+            margin: 0 0 2px;
+        }
+        .note-paper p {
+            font-family: 'Dancing Script', cursive;
+            color: #4a2e18;
+            font-size: clamp(0.88rem, 2.8vw, 1.25rem);
+            line-height: 1.95;
+            margin: 0;
+        }
+        .letter-sig {
+            margin-top: 14px;
+            display: flex; flex-direction: column; align-items: flex-end;
+            font-family: 'Dancing Script', cursive;
+            color: #6b3520;
+            font-size: clamp(0.9rem, 3vw, 1.15rem);
+            line-height: 1.7;
+        }
+        .sig-name { font-size: clamp(1.15rem, 4vw, 1.55rem); font-weight: 700; color: #5a3010; }
+        .paper-fold {
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 0; height: 0;
+            border-style: solid;
+            border-width: 0 0 28px 28px;
+            border-color: transparent transparent rgba(170,130,70,0.28) transparent;
+        }
+
+        /* ── Envelope body shell ── */
+        .env-body {
+            position: absolute; inset: 0;
+            z-index: 3;
+            pointer-events: none;
+            background: #f2ead8;
+            box-shadow:
+                0 4px 0 rgba(120,90,40,0.22),
+                0 8px 26px rgba(0,0,0,0.4),
+                0 22px 55px rgba(0,0,0,0.24);
+        }
+        .env-tri { position: absolute; inset: 0; }
+        .env-tri-left  { background: #e4dac4; clip-path: polygon(0 0, 0 100%, 50% 50%); }
+        .env-tri-right { background: #ebe2cc; clip-path: polygon(100% 0, 100% 100%, 50% 50%); }
+        .env-tri-btm   { background: #ddd4be; clip-path: polygon(0 100%, 100% 100%, 50% 50%); }
+
+        /* Pink inside lining */
+        .env-inside {
+            position: absolute; inset: 0;
+            background: linear-gradient(155deg, #fce8ee, #f8c8da);
+            clip-path: polygon(0 0, 100% 0, 50% 50%);
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.55s 0.45s ease;
+        }
+        .env-inside.show { opacity: 1; }
+
+        /* Fold-line shadows */
+        .env-line-l, .env-line-r {
+            position: absolute;
+            top: 50%; height: 1px;
+            width: 52%; background: rgba(0,0,0,0.05);
+        }
+        .env-line-l { left: 0;   transform-origin: right; transform: rotate(-30deg); }
+        .env-line-r { right: 0;  transform-origin: left;  transform: rotate(30deg);  }
+
+        /* Diagonal stripe border */
+        .env-border {
+            position: absolute; inset: 0;
+            border: 5px solid transparent;
+            border-image: repeating-linear-gradient(
+                -45deg, #c98644 0, #c98644 5px, #f2ead8 5px, #f2ead8 10px
+            ) 5;
+            z-index: 6; pointer-events: none;
+        }
+
+        /* Opening flap */
+        .env-flap {
+            position: absolute; inset: 0;
+            background: linear-gradient(178deg, #ece3cb 0%, #e3d9c1 100%);
+            clip-path: polygon(0 0, 100% 0, 50% 50%);
+            transform-origin: center top;
+            transform: perspective(1400px) rotateX(0deg);
+            transition: transform 1.08s cubic-bezier(0.23, 1, 0.32, 1);
+            z-index: 5;
+            backface-visibility: hidden;
+        }
+        .env-flap::before {
+            content: '';
+            position: absolute;
+            bottom: 5px; left: 22%; right: 22%; height: 2px;
+            background: rgba(0,0,0,0.06); border-radius: 1px;
+        }
+        .env-flap.open { transform: perspective(1400px) rotateX(-184deg); }
+
+        /* Wax seal */
+        .env-seal {
+            position: absolute;
+            bottom: 13%; left: 50%;
+            transform: translateX(-50%);
+            width: 48px; height: 48px;
+            background: radial-gradient(circle at 38% 32%, #e55039, #7b1a0e);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Dancing Script', cursive;
+            font-size: 18px; color: rgba(255,255,255,0.9); font-weight: 700;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.52), inset 0 1px 3px rgba(255,255,255,0.2);
+            z-index: 7;
+            transition: transform 0.38s cubic-bezier(0.68,-0.55,0.27,1.55), opacity 0.3s ease;
+        }
+        .env-seal::before {
+            content: ''; position: absolute; inset: 4px;
+            border: 1.5px solid rgba(255,255,255,0.18); border-radius: 50%;
+        }
+        .env-seal::after {
+            content: ''; position: absolute; inset: 9px;
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 50%;
+        }
+        .env-seal.pop {
+            transform: translateX(-50%) scale(1.35) rotate(22deg);
+            opacity: 0;
+        }
+
+        /* ── Flower sway ── */
+        .tulip-sway {
+            transform-box: fill-box;
+            transform-origin: bottom center;
+            animation: sway var(--sw, 3s) ease-in-out infinite alternate;
+            animation-delay: var(--sd, 0s);
+        }
+        @keyframes sway {
+            from { transform: rotate(-3.5deg); }
+            to   { transform: rotate(3.5deg); }
+        }
+
+        /* ── Day mode ── */
+        #letter-container.day-mode {
+            background: linear-gradient(180deg,
+                #1478c8 0%, #42aef0 28%, #90d0f8 58%, #c0e898 82%, #468022 100%
+            );
+        }
+        #letter-container.day-mode .moon {
+            background: radial-gradient(circle at 50% 48%, #fffde7, #ffe082 44%, #ffc107 74%, #ff9800 100%);
+            width: var(--moon-sz); height: var(--moon-sz);
+            box-shadow:
+                0 0 0 4px rgba(255,200,50,0.2),
+                0 0 44px 22px rgba(255,200,50,0.52),
+                0 0 90px 45px rgba(255,175,0,0.3),
+                0 0 140px 70px rgba(255,140,0,0.14);
+            animation: sunGlow 3s ease-in-out infinite alternate;
+        }
+        #letter-container.day-mode .moon::before { display: none; }
+        @keyframes sunGlow {
+            from { box-shadow: 0 0 0 4px rgba(255,200,50,0.15), 0 0 38px 18px rgba(255,200,50,0.44), 0 0 80px 40px rgba(255,175,0,0.22); }
+            to   { box-shadow: 0 0 0 4px rgba(255,200,50,0.28), 0 0 58px 28px rgba(255,200,50,0.62), 0 0 115px 58px rgba(255,140,0,0.32); }
+        }
+        #letter-container.day-mode .nebula         { opacity: 0; transition: opacity 1.2s; }
+        #letter-container.day-mode .scene-stars    { opacity: 0; transition: opacity 1.2s; }
+        #letter-container.day-mode .moonlight-beam { opacity: 0; transition: opacity 1.2s; }
+        #letter-container.day-mode .garden-svg     { filter: brightness(1.7) saturate(1.35); transition: filter 1.2s; }
+        .garden-svg { transition: filter 1.2s; }
+
+        /* ── Firefly ── */
+        .firefly {
+            position: absolute;
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #c8ff78;
+            box-shadow: 0 0 8px 5px rgba(176,255,80,0.7), 0 0 18px 9px rgba(176,255,80,0.3);
+            z-index: 5;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+        }
+
+        /* ── Butterfly ── */
+        .butterfly-svg {
+            position: absolute;
+            width: clamp(44px, 9vw, 66px);
+            height: clamp(32px, 6.5vw, 46px);
+            z-index: 5;
+            pointer-events: none;
+            display: none;
+        }
+        .butterfly-svg.visible { display: block; }
+        @keyframes wingFlap {
+            from { transform: scaleX(1); }
+            to   { transform: scaleX(0.52); }
+        }
+        .bt-wings { animation: wingFlap 0.2s ease-in-out infinite alternate; }
+
+        /* Moon is clickable */
+        .moon { cursor: pointer; pointer-events: auto !important; }
+
+        /* ── Standalone letter (after envelope disappears) ── */
+        .env-letter-paper.standalone {
+            border-radius: 4px;
+            max-height: calc(100dvh - 32px);
+            max-height: calc(100vh - 32px);
+            overflow-y: auto;
+            box-shadow:
+                0 16px 56px rgba(0,0,0,0.65),
+                0 4px 16px rgba(0,0,0,0.35);
+        }
+
+        /* ── Responsive breakpoints ── */
+
+        /* Small portrait phones */
+        @media (max-width: 380px) {
+            #stage { transform: scale(0.82); transform-origin: top center; }
+        }
+        @media (max-width: 320px) {
+            #stage { transform: scale(0.72); transform-origin: top center; }
+        }
+        @media (max-width: 270px) {
+            #stage { transform: scale(0.62); transform-origin: top center; }
+        }
+
+        /* Landscape phones */
+        @media (orientation: landscape) and (max-height: 500px) {
+            :root {
+                --env-w: min(260px, 62vw);
+                --moon-sz: clamp(36px, 8vmin, 60px);
+            }
+            #letter-container { padding-bottom: 32vh; }
+            .garden-svg       { height: 32vh; }
+            .env-hint         { margin-bottom: 6px; }
+        }
+        @media (orientation: landscape) and (max-height: 400px) {
+            :root {
+                --env-w: min(220px, 56vw);
+                --moon-sz: clamp(28px, 7vmin, 48px);
+            }
+            #letter-container { padding-bottom: 28vh; }
+            .garden-svg       { height: 28vh; }
+        }
+
+        /* Tablets and larger */
+        @media (min-width: 768px) {
+            :root { --env-w: min(340px, 50vw); }
+        }
+        @media (min-width: 1024px) {
+            :root { --env-w: 340px; --moon-sz: 90px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<div id="stage">
+    <h2 id="hint">Click the cake to eat it! 🍰</h2>
+
+    <div class="cake-box" id="cake-container" onclick="eatCake(event)">
+        <div id="layer3" class="layer l3">
+            <div class="candle-wrap" id="candle-wrap">
+                <div class="glow-halo"></div>
+                <div class="flame"></div>
+                <div class="candle-body"></div>
+            </div>
+        </div>
+        <div id="layer2" class="layer l2"></div>
+        <div id="layer1" class="layer l1"></div>
+        <div class="plate"></div>
+    </div>
+
+    <div id="letter-container">
+        <div class="scene-bg" id="scene-bg">
+            <div class="nebula"></div>
+            <div class="scene-stars" id="scene-stars"></div>
+            <div class="moon"></div>
+            <div class="moonlight-beam"></div>
+            <svg id="garden-svg" class="garden-svg" viewBox="0 0 1400 320" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+
+        <div class="env-scene" id="env-scene">
+            <div class="env-hint" id="env-hint">Click to open! 💌</div>
+
+            <div class="env-wrap" id="env-wrap" onclick="advanceEnv(event)">
+
+                <!-- LETTER PAPER (inside envelope, slides up on click 2) -->
+                <div class="env-letter-paper" id="env-letter-paper">
+                    <!-- Top fold half (starts folded over bottom) -->
+                    <div class="flip-hinge" id="flip-hinge">
+                        <div class="flip-front">
+                            <div class="letter-date">May 14th, 2026</div>
+                            <h2>Hey, you! 🎂</h2>
+                        </div>
+                        <div class="flip-back"></div>
+                    </div>
+                    <!-- Crease line -->
+                    <div class="fold-crease"></div>
+                    <!-- Bottom half — always visible side -->
+                    <div class="note-paper">
+                        <p>Happy Birthday! Wishing you a day packed with laughter, good food, and all the things that make you smile. You totally deserve it!</p>
+                        <div class="letter-sig">
+                            <span>Lots of birthday love,</span>
+                            <span class="sig-name">[Your Name]</span>
+                        </div>
+                        <div class="paper-fold"></div>
+                    </div>
+                </div>
+
+                <!-- ENVELOPE SHELL (sits in front of letter while sealed) -->
+                <div class="env-body" id="env-body">
+                    <div class="env-tri env-tri-left"></div>
+                    <div class="env-tri env-tri-right"></div>
+                    <div class="env-tri env-tri-btm"></div>
+                    <div class="env-inside" id="env-inside"></div>
+                    <div class="env-line-l"></div>
+                    <div class="env-line-r"></div>
+                    <div class="env-flap" id="env-flap">
+                        <div class="env-seal" id="env-seal">B</div>
+                    </div>
+                    <div class="env-border"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ── Stars ── */
+    const starsEl = document.getElementById('stars');
+    for (let i = 0; i < 90; i++) {
+        const s = document.createElement('div');
+        s.className = 'star';
+        const sz = Math.random() * 2.5 + 1;
+        s.style.cssText = `
+            left:${Math.random()*100}vw; top:${Math.random()*100}vh;
+            width:${sz}px; height:${sz}px;
+            --d:${(Math.random()*3+1).toFixed(2)}s;
+            --delay:${(Math.random()*4).toFixed(2)}s;
+        `;
+        starsEl.appendChild(s);
+    }
+
+    /* ── Sprinkles ── */
+    const palettes = {
+        layer3: ['#ffd32a','#0984e3','#00b894','#e84393','#ffffff'],
+        layer2: ['#ff7675','#6c5ce7','#00cec9','#fdcb6e','#ffffff'],
+        layer1: ['#a29bfe','#55efc4','#fd79a8','#ffeaa7','#74b9ff']
+    };
+    Object.entries(palettes).forEach(([id, colors]) => {
+        const el = document.getElementById(id);
+        for (let i = 0; i < 14; i++) {
+            const sp = document.createElement('div');
+            sp.className = 'sprinkle';
+            sp.style.cssText = `
+                left:${Math.random()*82+4}%;
+                top:${Math.random()*55+20}%;
+                background:${colors[Math.floor(Math.random()*colors.length)]};
+                transform:rotate(${Math.random()*180}deg);
+            `;
+            el.appendChild(sp);
+        }
+    });
+
+    /* ── Bite FX helpers ── */
+    const layerMeta = [
+        null,
+        { id:'layer1', color:'#922b21',  hint:'Almost there... 🍽️' },
+        { id:'layer2', color:'#d35400',  hint:'Keep going! 🤤' },
+        { id:'layer3', color:'#f368e0',  hint:'Mmm, so good! 😋' },
+    ];
+
+    function spawnRing(x, y) {
+        const r = document.createElement('div');
+        r.className = 'bite-ring';
+        r.style.cssText = `left:${x}px; top:${y}px;`;
+        document.body.appendChild(r);
+        setTimeout(() => r.remove(), 450);
+    }
+
+    function spawnChunks(x, y, color, count = 3) {
+        for (let i = 0; i < count; i++) {
+            const c = document.createElement('div');
+            c.className = 'bite-chunk';
+            const sz = Math.random() * 28 + 16;
+            const angle = (Math.random() * 160 - 80) * Math.PI / 180;
+            const dist  = Math.random() * 130 + 60;
+            c.style.cssText = `
+                left:${x}px; top:${y}px;
+                width:${sz}px; height:${sz}px;
+                margin-left:${-sz/2}px; margin-top:${-sz/2}px;
+                background:${color};
+                --fx:${Math.cos(angle)*dist}px;
+                --fy:${-dist*0.7 - Math.random()*40}px;
+                --rot:${Math.random()*360-180}deg;
+                animation-delay:${i*0.04}s;
+            `;
+            document.body.appendChild(c);
+            setTimeout(() => c.remove(), 800);
+        }
+    }
+
+    function spawnCrumbs(x, y, color, count = 22) {
+        for (let i = 0; i < count; i++) {
+            const c = document.createElement('div');
+            c.className = 'crumb';
+            const w = Math.random() * 6 + 3;
+            const h = Math.random() * 4 + 2;
+            const angle = Math.random() * Math.PI * 2;
+            const dist  = Math.random() * 110 + 35;
+            c.style.cssText = `
+                left:${x}px; top:${y}px;
+                width:${w}px; height:${h}px;
+                background:${color};
+                --cx:${Math.cos(angle)*dist}px;
+                --cy:${Math.sin(angle)*dist + 40 + Math.random()*60}px;
+                --cr:${Math.random()*720-360}deg;
+                --dur:${(Math.random()*0.45+0.4).toFixed(2)}s;
+            `;
+            document.body.appendChild(c);
+            setTimeout(() => c.remove(), 1100);
+        }
+    }
+
+    function flashScreen() {
+        const f = document.createElement('div');
+        f.style.cssText = 'position:fixed;inset:0;background:white;opacity:0.35;pointer-events:none;z-index:2000;transition:opacity 0.3s';
+        document.body.appendChild(f);
+        requestAnimationFrame(() => requestAnimationFrame(() => { f.style.opacity='0'; }));
+        setTimeout(() => f.remove(), 400);
+    }
+
+    /* ── Main click handler ── */
+    let count = 0;
+    const messages = [
+        'Yum! Keep eating! 🤤',
+        'Mmm, so good! 😋',
+        'Almost gone... 🍽️',
+        'Last bite! 😍',
+    ];
+
+    function eatCake(e) {
+        count++;
+        const container = document.getElementById('cake-container');
+        const x = e.clientX, y = e.clientY;
+
+        /* shake on every bite */
+        container.classList.remove('shaking');
+        void container.offsetWidth;
+        container.classList.add('shaking');
+
+        if (count === 1) {
+            /* blow out candle */
+            document.getElementById('candle-wrap').style.display = 'none';
+            document.getElementById('hint').innerText = messages[0];
+            flashScreen();
+            spawnCrumbs(x, y, '#a29bfe', 10);
+            spawnRing(x, y);
+
+        } else if (count >= 2 && count <= 4) {
+            const meta = layerMeta[5 - count]; /* layer3 → layer2 → layer1 */
+            document.getElementById('hint').innerText = messages[count - 1];
+            spawnRing(x, y);
+            spawnChunks(x, y, meta.color, 3);
+            spawnCrumbs(x, y, meta.color, 24);
+            document.getElementById(meta.id).classList.add('crumbling');
+
+        } else if (count === 5) {
+            spawnRing(x, y);
+            spawnCrumbs(x, y, '#922b21', 30);
+            spawnChunks(x, y, '#922b21', 4);
+            document.getElementById('layer1').classList.add('crumbling');
+
+            setTimeout(() => {
+                container.style.display = 'none';
+                document.getElementById('hint').style.display = 'none';
+                const lc = document.getElementById('letter-container');
+                lc.style.display = 'flex';
+                createGarden();
+                createConfetti();
+            }, 480);
+        }
+    }
+
+    function createGarden() {
+        const ns  = 'http://www.w3.org/2000/svg';
+        const svg = document.getElementById('garden-svg');
+
+        /* Use actual rendered size so tulips are never distorted on any screen */
+        const W  = svg.offsetWidth  || window.innerWidth;
+        const H  = svg.offsetHeight || Math.round(window.innerHeight * 0.38);
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        svg.removeAttribute('preserveAspectRatio');
+
+        /* sc = shape scale; all petal/leaf geometry scales with SVG height */
+        const sc = H / 320;
+        const GY = Math.round(H * 0.82); // ground line y
+
+        /* colour palettes: [dark-back, mid, light-front] */
+        const cols = [
+            { d:'#4a0810', m:'#b03040', l:'#f4a0a8' },
+            { d:'#380838', m:'#8b228b', l:'#d488d4' },
+            { d:'#0a1a38', m:'#b01858', l:'#f090b8' },
+            { d:'#480c00', m:'#d04028', l:'#f8a890' },
+            { d:'#140038', m:'#6a18a0', l:'#c890e0' },
+            { d:'#083818', m:'#1a7a3a', l:'#70c888' },
+        ];
+
+        function el(tag, attrs) {
+            const e = document.createElementNS(ns, tag);
+            for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+            return e;
+        }
+
+        function tulip(x, gy, h, c, s, opa) {
+            const fy = gy - h;
+            const g = el('g', opa < 1 ? { opacity: opa } : {});
+            g.setAttribute('class', 'tulip-sway');
+            g.style.setProperty('--sw', (2.2 + Math.random()*2.2).toFixed(2) + 's');
+            g.style.setProperty('--sd', (-Math.random()*2).toFixed(2) + 's');
+
+            /* stem */
+            g.appendChild(el('path', {
+                d: `M${x},${gy} C${x-4*s},${gy-h*0.3} ${x-6*s},${gy-h*0.62} ${x},${fy+13}`,
+                stroke:'#2a5535', 'stroke-width': 3.6*s, fill:'none', 'stroke-linecap':'round'
+            }));
+
+            /* left leaf */
+            const ly1 = gy - h*0.4;
+            g.appendChild(el('path', {
+                d: `M${x},${ly1+18} C${x-27*s},${ly1+5} ${x-37*s},${ly1-20} ${x-28*s},${ly1-34} C${x-16*s},${ly1-14} ${x-5*s},${ly1+2} ${x},${ly1+12}`,
+                fill:'#1c5228'
+            }));
+
+            /* right leaf */
+            const ly2 = gy - h*0.58;
+            g.appendChild(el('path', {
+                d: `M${x},${ly2+13} C${x+25*s},${ly2} ${x+34*s},${ly2-22} ${x+26*s},${ly2-36} C${x+14*s},${ly2-18} ${x+4*s},${ly2-3} ${x},${ly2+7}`,
+                fill:'#2a6038'
+            }));
+
+            /* petals: back-L, back-R, mid-L, mid-R, center */
+            const petals = [
+                { d:`M${x},${fy+14} C${x-25*s},${fy+1} ${x-31*s},${fy-24} ${x-21*s},${fy-42} C${x-10*s},${fy-20} ${x-2*s},${fy-3} ${x},${fy+14}`, fill:c.d, opa:.88 },
+                { d:`M${x},${fy+14} C${x+25*s},${fy+1} ${x+31*s},${fy-24} ${x+21*s},${fy-42} C${x+10*s},${fy-20} ${x+2*s},${fy-3} ${x},${fy+14}`,  fill:c.d, opa:.83 },
+                { d:`M${x},${fy+14} C${x-16*s},${fy} ${x-19*s},${fy-26} ${x-11*s},${fy-46} C${x-4*s},${fy-27} ${x},${fy-9} ${x},${fy+14}`,          fill:c.m, opa:1   },
+                { d:`M${x},${fy+14} C${x+16*s},${fy} ${x+19*s},${fy-26} ${x+11*s},${fy-46} C${x+4*s},${fy-27} ${x},${fy-9} ${x},${fy+14}`,           fill:c.m, opa:.95 },
+                { d:`M${x},${fy+14} C${x-9*s},${fy-1} ${x-9*s},${fy-29} ${x},${fy-48} C${x+9*s},${fy-29} ${x+9*s},${fy-1} ${x},${fy+14}`,            fill:c.l, opa:.80 },
+            ];
+            petals.forEach(p => {
+                const pe = el('path', { d:p.d, fill:p.fill });
+                if (p.opa < 1) pe.setAttribute('opacity', p.opa);
+                g.appendChild(pe);
+            });
+
+            /* stamens */
+            [-3.2*s, 0, 3.2*s].forEach((dx, i) => {
+                g.appendChild(el('circle', {
+                    cx: x+dx, cy: fy-47+(i===1?-4:0), r: 2.1*s,
+                    fill:'#ffd32a', opacity:.72
+                }));
+            });
+            return g;
+        }
+
+        /* ── Back row: 24 shorter tulips spread across full width ── */
+        for (let i = 0; i < 24; i++) {
+            const x = W * (i + 0.3) / 24 + (Math.random() - 0.5) * W * 0.012;
+            const h = H * 0.275 + Math.random() * H * 0.094;
+            const c = cols[Math.floor(Math.random() * cols.length)];
+            svg.appendChild(tulip(x, GY, h, c, sc * 0.5, 0.38 + Math.random() * 0.12));
+        }
+
+        /* ── Ground strip ── */
+        svg.appendChild(el('rect', { x:0, y:GY, width:W, height:H - GY, fill:'#0c1d0e' }));
+
+        /* wavy grass edge */
+        const nSegs = Math.max(28, Math.ceil(W / 25));
+        const segW  = W / nSegs;
+        let gd = `M0,${GY}`;
+        for (let i = 0; i < nSegs; i++) {
+            gd += ` Q${(i + 0.48) * segW},${GY - 13 * sc} ${(i + 1) * segW},${GY}`;
+        }
+        gd += ` L${W},${GY + H * 0.07} L0,${GY + H * 0.07} Z`;
+        svg.appendChild(el('path', { d:gd, fill:'#193a1e' }));
+
+        /* ── Front row: 19 taller tulips spread across full width ── */
+        for (let i = 0; i < 19; i++) {
+            const x = W * (i + 0.6) / 19 + (Math.random() - 0.5) * W * 0.016;
+            const h = H * 0.4 + Math.random() * H * 0.15;
+            const c = cols[Math.floor(Math.random() * cols.length)];
+            svg.appendChild(tulip(x, GY, h, c, sc * 0.72, 0.78 + Math.random() * 0.2));
+        }
+
+        /* ── Scene stars ── */
+        const starsEl = document.getElementById('scene-stars');
+        for (let i = 0; i < 130; i++) {
+            const s = document.createElement('div');
+            s.className = 'scene-star';
+            const sz = Math.random()*2.4+0.7;
+            s.style.cssText = `
+                left:${Math.random()*100}%;
+                top:${Math.random()*62}%;
+                width:${sz}px; height:${sz}px;
+                --sd:${(Math.random()*3.2+0.9).toFixed(2)}s;
+                --sdelay:${(Math.random()*4).toFixed(2)}s;
+            `;
+            starsEl.appendChild(s);
+        }
+
+        setupScene();
+    }
+
+    /* ══════════════════════════════════════
+       Scene interactivity
+    ══════════════════════════════════════ */
+
+    let isDay = false;
+
+    function setupScene() {
+        document.querySelector('.moon').addEventListener('click', toggleDayNight);
+        createFireflies();
+        createButterfly();
+    }
+
+    function toggleDayNight() {
+        isDay = !isDay;
+        document.getElementById('letter-container').classList.toggle('day-mode', isDay);
+        /* fireflies: fade out in day */
+        document.querySelectorAll('.firefly').forEach(ff => {
+            ff.style.opacity = isDay ? '0' : null; // null lets the RAF-driven value take over
+        });
+        /* butterfly: show in day */
+        const bt = document.querySelector('.butterfly-svg');
+        if (bt) bt.classList.toggle('visible', isDay);
+    }
+
+    /* ── Fireflies ── */
+    const ffData = [
+        { x:12, y:40, t:0,   spd:0.007  },
+        { x:68, y:46, t:2.6, spd:0.0058 },
+    ];
+    const ffEls = [];
+
+    function createFireflies() {
+        const scene = document.getElementById('scene-bg');
+        ffData.forEach(st => {
+            const ff = document.createElement('div');
+            ff.className = 'firefly';
+            ff.style.left = st.x + '%';
+            ff.style.top  = st.y + '%';
+            scene.appendChild(ff);
+            ffEls.push(ff);
+        });
+        (function animFF() {
+            ffData.forEach((st, i) => {
+                st.t += st.spd;
+                const x = st.x + Math.sin(st.t*0.72)*18 + Math.sin(st.t*0.28)*9;
+                const y = st.y + Math.sin(st.t*1.18+1)*7  + Math.sin(st.t*0.44)*4;
+                ffEls[i].style.left = x + '%';
+                ffEls[i].style.top  = y + '%';
+                if (!isDay) ffEls[i].style.opacity = (0.35 + 0.65 * Math.abs(Math.sin(st.t*3.6))).toFixed(2);
+            });
+            requestAnimationFrame(animFF);
+        })();
+    }
+
+    /* ── Butterfly ── */
+    let btEl, btX = -10, btY = 28, btT = 0;
+
+    function createButterfly() {
+        const ns  = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(ns, 'svg');
+        svg.setAttribute('class', 'butterfly-svg');
+        svg.setAttribute('viewBox', '0 0 80 52');
+
+        const wg = document.createElementNS(ns, 'g');
+        wg.setAttribute('class', 'bt-wings');
+
+        const wing = (d, fill, opa) => {
+            const p = document.createElementNS(ns, 'path');
+            p.setAttribute('d', d); p.setAttribute('fill', fill);
+            if (opa) p.setAttribute('opacity', opa);
+            return p;
+        };
+        /* upper wings */
+        wg.appendChild(wing('M40,27 C26,5 3,1 2,16 C0,28 18,37 40,31',  '#ffb347', '0.93'));
+        wg.appendChild(wing('M40,27 C54,5 77,1 78,16 C80,28 62,37 40,31', '#ffd54f', '0.88'));
+        /* lower wings */
+        wg.appendChild(wing('M40,31 C21,29 7,38 10,47 C12,52 27,49 40,38',  '#ff8f00', '0.9'));
+        wg.appendChild(wing('M40,31 C59,29 73,38 70,47 C68,52 53,49 40,38', '#ffb347', '0.86'));
+        /* wing spots */
+        [[19,18,5],[61,18,5]].forEach(([cx,cy,r]) => {
+            const c = document.createElementNS(ns, 'circle');
+            c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',r);
+            c.setAttribute('fill','rgba(0,0,0,0.18)');
+            wg.appendChild(c);
+        });
+        svg.appendChild(wg);
+
+        /* body */
+        const body = document.createElementNS(ns, 'ellipse');
+        ['cx','cy','rx','ry'].forEach((a,i) => body.setAttribute(a, [40,30,2.8,10][i]));
+        body.setAttribute('fill','#3e1c00');
+        svg.appendChild(body);
+
+        /* antennae */
+        [['M39,21 Q31,10 27,5', 27, 5], ['M41,21 Q49,10 53,5', 53, 5]].forEach(([d,bx,by]) => {
+            const p = document.createElementNS(ns, 'path');
+            p.setAttribute('d',d); p.setAttribute('stroke','#3e1c00');
+            p.setAttribute('stroke-width','1.2'); p.setAttribute('fill','none');
+            svg.appendChild(p);
+            const dot = document.createElementNS(ns, 'circle');
+            dot.setAttribute('cx',bx); dot.setAttribute('cy',by);
+            dot.setAttribute('r','2'); dot.setAttribute('fill','#3e1c00');
+            svg.appendChild(dot);
+        });
+
+        document.getElementById('scene-bg').appendChild(svg);
+        btEl = svg;
+        btY  = 22 + Math.random()*16;
+
+        (function animBt() {
+            btT += 0.007;
+            btX += 0.055;
+            const y = btY + Math.sin(btT*2.3)*3.5;
+            btEl.style.left = btX + '%';
+            btEl.style.top  = y + '%';
+            if (btX > 110) { btX = -10; btY = 20 + Math.random()*18; }
+            requestAnimationFrame(animBt);
+        })();
+    }
+
+    /* ══════════════════════════════════════
+       Envelope — single-click reveal
+    ══════════════════════════════════════ */
+    let envOpened = false;
+
+    function advanceEnv(e) {
+        if (e) e.stopPropagation();
+        if (envOpened) return;
+        envOpened = true;
+
+        /* Hide the prompt hint immediately */
+        document.getElementById('env-hint').classList.add('hidden');
+
+        /* Step 1 — Wax seal bursts off */
+        document.getElementById('env-seal').classList.add('pop');
+
+        /* Step 2 — Flap swings back open, pink lining reveals */
+        setTimeout(() => {
+            document.getElementById('env-flap').classList.add('open');
+            document.getElementById('env-inside').classList.add('show');
+        }, 300);
+
+        /* Step 3 — After flap fully open, burst letter to center */
+        setTimeout(revealLetter, 1350);
+    }
+
+    function revealLetter() {
+        const paper   = document.getElementById('env-letter-paper');
+        const envWrap = document.getElementById('env-wrap');
+
+        /* Capture position + size BEFORE touching the DOM */
+        const rect    = paper.getBoundingClientRect();
+        const letterH = paper.offsetHeight;
+
+        /*
+         * CRITICAL: move letter OUT of envWrap's DOM subtree first.
+         * CSS opacity on a parent paints ALL descendants at that opacity,
+         * even position:fixed children — so if we left the letter inside
+         * envWrap it would become invisible when envWrap fades to opacity:0.
+         */
+        document.body.appendChild(paper);
+
+        /* Pin letter to fixed at the exact screen position we just captured */
+        paper.style.transition = 'none';
+        paper.style.position   = 'fixed';
+        paper.style.top        = rect.top  + 'px';
+        paper.style.left       = rect.left + 'px';
+        paper.style.width      = rect.width + 'px';
+        paper.style.bottom     = 'auto';
+        paper.style.transform  = 'none';
+        paper.style.zIndex     = '200';
+        paper.style.margin     = '0';
+
+        /* NOW it is safe to fade the envelope — letter is no longer its child */
+        envWrap.style.transition    = 'opacity 0.55s ease, transform 0.55s ease';
+        envWrap.style.opacity       = '0';
+        envWrap.style.transform     = 'translateY(14px) scale(0.96)';
+        envWrap.style.pointerEvents = 'none';
+        envWrap.onclick             = null;
+
+
+        /* Force reflow so browser commits the starting position before animating */
+        void paper.getBoundingClientRect();
+
+        /* Glide letter to viewport center, expanding width for larger screens */
+        const vw       = window.innerWidth;
+        const vh       = window.innerHeight;
+        const gardenEl = document.getElementById('garden-svg');
+        const gardenH  = gardenEl ? gardenEl.getBoundingClientRect().height : vh * 0.38;
+        const usableH  = vh - gardenH;
+
+        /* Responsive letter width: fills most of mobile, caps at 480px on desktop */
+        const targetWidth = Math.min(
+            Math.max(rect.width, Math.round(vw * 0.88)),
+            480,
+            vw - 24
+        );
+        const targetTop  = Math.max(12, (usableH - letterH) / 2);
+        const targetLeft = Math.max(12, (vw - targetWidth) / 2);
+
+        paper.style.transition = [
+            'top 0.9s cubic-bezier(0.23, 1, 0.32, 1)',
+            'left 0.9s cubic-bezier(0.23, 1, 0.32, 1)',
+            'width 0.9s cubic-bezier(0.23, 1, 0.32, 1)'
+        ].join(', ');
+        paper.style.top   = targetTop   + 'px';
+        paper.style.left  = targetLeft  + 'px';
+        paper.style.width = targetWidth + 'px';
+
+        /* Unfold the top half of the letter as it travels to center */
+        setTimeout(() => {
+            document.getElementById('flip-hinge').classList.add('open');
+        }, 180);
+
+        /* Final polish once all animations have settled */
+        setTimeout(() => {
+            paper.classList.add('standalone');
+        }, 1000);
+    }
+
+    function createConfetti() {
+        const items = ['🌸','✨','💖','🎉','⭐','🌟','💫','🎊','🎈'];
+        for (let i = 0; i < 65; i++) {
+            const p = document.createElement('div');
+            p.textContent = items[Math.floor(Math.random() * items.length)];
+            const dur = (Math.random() * 3 + 2).toFixed(2);
+            p.style.cssText = `
+                position:fixed;
+                left:${Math.random()*100}vw; top:-6vh;
+                font-size:${Math.random()*18+14}px;
+                z-index:100; pointer-events:none;
+                transition:transform ${dur}s linear, opacity ${dur}s ease-in;
+                animation-delay:${Math.random()*1.5}s;
+            `;
+            document.body.appendChild(p);
+            setTimeout(() => {
+                p.style.transform = `translateY(115vh) rotate(${Math.random()*720}deg)`;
+                p.style.opacity = '0';
+            }, 100 + i * 30);
+            setTimeout(() => p.remove(), (+dur + 1.5) * 1000 + i * 30);
+        }
+    }
+</script>
+</body>
+</html>
